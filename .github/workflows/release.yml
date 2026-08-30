@@ -1,0 +1,46 @@
+name: Release macOS app
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DMG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APP_VERSION="$VERSION" APP_BUILD="$VERSION" scripts/make-dmg.sh
+
+      - name: Sign update archive and build appcast
+        run: |
+          : "${SPARKLE_ED_PRIVATE_KEY:?Missing SPARKLE_ED_PRIVATE_KEY GitHub secret}"
+          mkdir -p dist
+          cp ogpreview-macos.dmg dist/
+          notes="dist/ogpreview-macos.md"
+          printf "# ogpreview %s\n\n%s\n" "${GITHUB_REF_NAME}" "${RELEASE_BODY}" > "$notes"
+
+          printf "%s" "${SPARKLE_ED_PRIVATE_KEY}" | \
+            .build/artifacts/sparkle/Sparkle/bin/generate_appcast \
+              --ed-key-file - \
+              --download-url-prefix "https://github.com/neetozone/ogpreview/releases/download/${GITHUB_REF_NAME}/" \
+              --embed-release-notes \
+              -o dist/appcast.xml \
+              dist
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ogpreview-macos.dmg
+            dist/appcast.xml
