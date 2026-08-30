@@ -75,15 +75,45 @@ that and every existing install stops updating. So keep a backup outside both:
 
 ```bash
 # Back the key up — paste into a password manager, then clear the clipboard
-.build/artifacts/sparkle/Sparkle/bin/generate_keys --account neetozone -x /tmp/ogpreview-sparkle.key
-pbcopy < /tmp/ogpreview-sparkle.key && rm -P /tmp/ogpreview-sparkle.key
-
-# On a new Mac, import the backup — never generate a fresh key
-.build/artifacts/sparkle/Sparkle/bin/generate_keys --account neetozone -f ogpreview-sparkle.key
+.build/artifacts/sparkle/Sparkle/bin/generate_keys --account neetozone -x /tmp/k.key
+pbcopy < /tmp/k.key && rm -P /tmp/k.key
 
 # Check at any time that the local key still matches what the app trusts
 scripts/make-app.sh && scripts/verify-signing-key.sh
 ```
+
+### Restoring the key on a new Mac
+
+Releases keep working before you do any of this — CI signs with the repository
+secret, not with your keychain. This restores the local copy, and keeps you from
+minting a new key by accident.
+
+**Never run `generate_keys` without `--account`, and never accept a newly
+generated key.** Bare `generate_keys` reads a different, unrelated account, finds
+a key there, and reports nothing wrong.
+
+```bash
+xcode-select --install                    # Command Line Tools; no Xcode needed
+
+git clone git@github.com:neetozone/ogpreview.git ~/code/neetozone/ogpreview
+cd ~/code/neetozone/ogpreview && swift build
+
+# Copy the key out of the password manager, then import it. The tr strips a
+# trailing newline the clipboard may add; the file must be the 44 base64 chars.
+pbpaste | tr -d '[:space:]' > /tmp/k.key \
+  && .build/artifacts/sparkle/Sparkle/bin/generate_keys --account neetozone -f /tmp/k.key \
+  && rm -P /tmp/k.key
+
+# Must print exactly: aPtkST8xh4P6/JRXHkMLjr2XNOtM/+jd3g2pTqraiEo=
+.build/artifacts/sparkle/Sparkle/bin/generate_keys --account neetozone -p
+
+# The definitive check
+scripts/make-app.sh && scripts/verify-signing-key.sh
+```
+
+That public key is safe to keep in the open — it already ships inside every copy
+of the app. That is what makes the check meaningful: if the printed value differs,
+stop, because the key in hand is not the one installed copies trust.
 
 Every release verifies this automatically: the workflow derives the public key
 from the secret and compares it against the built app, and fails the release
