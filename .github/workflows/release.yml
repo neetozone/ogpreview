@@ -19,6 +19,16 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           APP_VERSION="$VERSION" APP_BUILD="$VERSION" scripts/make-dmg.sh
 
+      - name: Verify the signing key matches the app
+        run: |
+          : "${SPARKLE_ED_PRIVATE_KEY:?Missing SPARKLE_ED_PRIVATE_KEY GitHub secret}"
+          KEY_DIR="$(mktemp -d)"
+          printf "%s" "${SPARKLE_ED_PRIVATE_KEY}" > "$KEY_DIR/sparkle.key"
+          scripts/verify-signing-key.sh "$KEY_DIR/sparkle.key"
+          rm -rf "$KEY_DIR"
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+
       - name: Sign update archive and build appcast
         run: |
           : "${SPARKLE_ED_PRIVATE_KEY:?Missing SPARKLE_ED_PRIVATE_KEY GitHub secret}"

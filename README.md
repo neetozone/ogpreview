@@ -58,17 +58,44 @@ Released builds are universal (arm64 + x86_64). SwiftPM's `--arch` needs full Xc
 
 `OGPREVIEW_PLATFORMS=slack,discord` narrows the preview column to a few cards. When it is set, the address bar shows a "Filtered" badge, so a shortened list can never be mistaken for missing previews.
 
-## Cutting a release
+## Signing key
 
-Sparkle updates are published from GitHub Releases. The private signing key lives in the `SPARKLE_ED_PRIVATE_KEY` repository secret, generated against the `neetozone` keychain account:
+Updates are only installable if they are signed with the one key installed copies
+trust. Each build carries a public key in its `Info.plist`; Sparkle rejects any
+update signed by a different key, and reports that to users as nothing at all —
+updates simply stop arriving.
+
+The key lives in two places, and **neither survives a new laptop by itself**:
+
+* the macOS login keychain, on the account `neetozone` (this is the only readable copy)
+* the `SPARKLE_ED_PRIVATE_KEY` repository secret, which GitHub will never show back
+
+A fresh Mac has no key, and `generate_keys` quietly makes a *new* one. Ship with
+that and every existing install stops updating. So keep a backup outside both:
 
 ```bash
-.build/artifacts/sparkle/Sparkle/bin/generate_keys \
-  --account neetozone \
-  -x sparkle_private_key.txt
+# Back the key up — paste into a password manager, then clear the clipboard
+.build/artifacts/sparkle/Sparkle/bin/generate_keys --account neetozone -x /tmp/ogpreview-sparkle.key
+pbcopy < /tmp/ogpreview-sparkle.key && rm -P /tmp/ogpreview-sparkle.key
+
+# On a new Mac, import the backup — never generate a fresh key
+.build/artifacts/sparkle/Sparkle/bin/generate_keys --account neetozone -f ogpreview-sparkle.key
+
+# Check at any time that the local key still matches what the app trusts
+scripts/make-app.sh && scripts/verify-signing-key.sh
 ```
 
-Use the contents of `sparkle_private_key.txt` as the secret value, then delete the file after adding the secret.
+Every release verifies this automatically: the workflow derives the public key
+from the secret and compares it against the built app, and fails the release
+rather than publishing an update nobody can install.
+
+If the key is ever lost from both places, it cannot be recovered. The only way
+forward is to publish a build carrying a new public key and have everyone install
+it by hand once — auto-update cannot cross that gap.
+
+## Cutting a release
+
+Sparkle updates are published from GitHub Releases.
 
 To publish an update:
 
