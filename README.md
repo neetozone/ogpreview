@@ -31,6 +31,11 @@ swift run                                  # run from source
 open ogpreview.app
 ```
 
+The released binary is universal (arm64 + x86_64), so it runs on Apple Silicon
+and Intel Macs alike. Building universal locally needs full Xcode for SwiftPM's
+`--arch`; with only the Command Line Tools the scripts build for this machine's
+architecture and say so, while CI still produces a universal DMG.
+
 ## Releasing
 
 The app updates itself through [Sparkle](https://sparkle-project.org). To ship a
