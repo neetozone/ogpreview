@@ -1,0 +1,9 @@
+<svg width="360" height="112" viewBox="0 0 360 112" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Download app for macOS</title>
+  <desc id="desc">A dark rounded download badge for the ogpreview macOS app.</desc>
+  <rect x="1.5" y="1.5" width="357" height="109" rx="18" fill="#111827" stroke="#374151" stroke-width="3"/>
+  <path d="M92 33.5C89.6 36.4 85.8 38.7 82 38.4C81.5 34.6 83.4 30.5 85.6 28C88 25.1 92.1 23 95.5 22.8C95.9 26.8 94.4 30.7 92 33.5Z" fill="white"/>
+  <path d="M95.4 39.2C89.9 38.9 85.2 42.3 82.6 42.3C80 42.3 76.1 39.4 71.8 39.5C66.2 39.6 61 42.8 58.1 47.9C52.2 58.1 56.6 73.2 62.3 81.5C65.1 85.6 68.5 90.2 72.9 90C77.1 89.8 78.8 87.3 83.9 87.3C89.1 87.3 90.6 90 95.1 89.9C99.8 89.8 102.7 85.8 105.5 81.7C108.7 77 110.1 72.4 110.2 72.2C110.1 72.1 101.3 68.7 101.2 58.6C101.1 50.2 108.1 46.2 108.4 46C104.5 40.2 98.4 39.3 95.4 39.2Z" fill="white"/>
+  <text x="133" y="43" fill="#D1D5DB" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="500">Download app for</text>
+  <text x="133" y="76" fill="white" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="31" font-weight="700">macOS</text>
+</svg>
