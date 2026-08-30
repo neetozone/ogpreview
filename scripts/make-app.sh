@@ -8,17 +8,19 @@ cd "$(dirname "$0")/.."
 # machine without it falls back to its own architecture. CI has Xcode, so the
 # released DMG is always universal.
 # UNIVERSAL=0 forces the fast single-architecture build.
-ARCH_FLAGS=()
+ARCH_FLAGS=""
 if [ "${UNIVERSAL:-1}" = "1" ]; then
   if [ -d "$(xcode-select -p)/../SharedFrameworks/XCBuild.framework" ]; then
-    ARCH_FLAGS=(--arch arm64 --arch x86_64)
+    ARCH_FLAGS="--arch arm64 --arch x86_64"
   else
     echo "note: full Xcode not selected, building $(uname -m) only (CI builds are universal)"
   fi
 fi
 
-swift build -c release "${ARCH_FLAGS[@]}"
-BIN="$(swift build -c release "${ARCH_FLAGS[@]}" --show-bin-path)"
+# Unquoted on purpose: the flags are a fixed literal, and an empty array would
+# trip `set -u` on the bash 3.2 that ships with macOS.
+swift build -c release $ARCH_FLAGS
+BIN="$(swift build -c release $ARCH_FLAGS --show-bin-path)"
 APP_VERSION="${APP_VERSION:-0.1}"
 APP_BUILD="${APP_BUILD:-$APP_VERSION}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
