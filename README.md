@@ -109,3 +109,7 @@ crawler-agent fetch  -->  meta tags  -->  8 platform cards   (left)
 * `Sources/ogpreview/Models/PageMetadata.swift` - one fetch, plus each platform's fallback chain.
 * `Sources/ogpreview/Views/PreviewCards.swift` - the eight platform cards.
 * `Sources/ogpreview/Views/InspectorView.swift` - Tests, Tags and Response panels.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
