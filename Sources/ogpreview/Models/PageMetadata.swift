@@ -14,6 +14,17 @@ struct MetaTag: Identifiable, Hashable {
     let value: String
 }
 
+/// A favicon or home-screen icon `<link>`, with the attributes that say which
+/// devices can use it.
+struct IconLink: Hashable {
+    let rel: String
+    let href: String
+    let sizes: String?
+    let type: String?
+
+    var relTokens: [String] { rel.split(separator: " ").map(String.init) }
+}
+
 /// Everything a crawler learns about a page in one fetch.
 struct PageMetadata {
     var requestedURL: URL
@@ -25,6 +36,10 @@ struct PageMetadata {
     var redirects: [String]
     var htmlTitle: String?
     var tags: [MetaTag]
+    var icons: [IconLink]
+    var language: String?
+    var h1Count: Int
+    var hasStructuredData: Bool
 
     /// First non-empty value for any of the given keys, in priority order.
     func value(_ keys: String...) -> String? {

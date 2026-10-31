@@ -58,7 +58,11 @@ enum MetadataFetcher {
                             elapsed: elapsed,
                             redirects: recorder.hops,
                             htmlTitle: parsed.title,
-                            tags: parsed.tags)
+                            tags: parsed.tags,
+                            icons: parsed.icons,
+                            language: parsed.language,
+                            h1Count: parsed.h1Count,
+                            hasStructuredData: parsed.hasStructuredData)
     }
 
     static func probe(_ url: URL) async -> ImageProbe {

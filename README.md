@@ -14,7 +14,7 @@ ogpreview is a Mac app that shows how a link will unfurl on Google, X, Facebook,
 
 * **Eight real previews** - Google, X, Facebook, LinkedIn, Slack, Discord, iMessage and WhatsApp, each drawn with that platform's own layout, colours and truncation.
 * **Sees what crawlers see** - fetches with a crawler user-agent, no cookies and no JavaScript, so the preview matches what Facebook and Slack actually read.
-* **27 pass/fail tests** - every tag platforms use, their lengths against what each platform truncates, and the `og:image`'s real dimensions, aspect ratio and weight.
+* **36 pass/fail tests** - every tag platforms use, their lengths against what each platform truncates, the `og:image`'s real dimensions, aspect ratio and weight, and page basics: charset, `lang`, one `<h1>`, favicons, manifest, theme colour and JSON-LD.
 * **Tells you how to fix it** - each failing test carries the exact tag to paste, filled in with the page's own values.
 * **Shows the passes too** - failures list first, confirmed-good checks below, so you can see what was verified.
 * **Tag and response inspectors** - every Open Graph, Twitter, standard and link tag, plus status, redirect chain, content type, size and timing.
@@ -140,7 +140,7 @@ One fetch feeds both halves of the window:
 
 ```text
 crawler-agent fetch  -->  meta tags  -->  8 platform cards   (left)
-                                     \->  27 tests + fixes   (right)
+                                     \->  36 tests + fixes   (right)
                           og:image    ->  downloaded and measured
 ```
 

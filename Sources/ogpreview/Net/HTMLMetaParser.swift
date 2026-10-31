@@ -1,14 +1,29 @@
 import Foundation
 
+/// What the parser found in one page's markup.
+struct ParsedHTML {
+    var title: String?
+    var tags: [MetaTag]
+    var icons: [IconLink]
+    var language: String?
+    var h1Count: Int
+    var hasStructuredData: Bool
+}
+
 /// Pulls <title>, <meta> and <link> out of raw HTML. A crawler never runs the
 /// page's JavaScript, so a regex pass over the served markup sees exactly what
 /// Facebook, X and Slack see.
 enum HTMLMetaParser {
-    static func parse(_ html: String) -> (title: String?, tags: [MetaTag]) {
+    static func parse(_ html: String) -> ParsedHTML {
         var tags: [MetaTag] = []
+        var icons: [IconLink] = []
 
         for match in html.regexMatches(#"<meta\s+([^>]*?)/?>"#) {
             let attrs = attributes(match[1])
+            if let charset = attrs["charset"]?.trimmed, !charset.isEmpty {
+                tags.append(MetaTag(kind: .standard, key: "charset", value: charset))
+                continue
+            }
             let name = attrs["property"] ?? attrs["name"] ?? attrs["itemprop"] ?? attrs["http-equiv"]
             guard let key = name?.trimmed, !key.isEmpty,
                   let content = attrs["content"]?.decodingHTMLEntities() else { continue }
@@ -17,16 +32,28 @@ enum HTMLMetaParser {
 
         for match in html.regexMatches(#"<link\s+([^>]*?)/?>"#) {
             let attrs = attributes(match[1])
-            guard let rel = attrs["rel"]?.lowercased(), let href = attrs["href"],
-                  ["canonical", "icon", "shortcut icon", "apple-touch-icon", "manifest"].contains(rel)
+            guard let rel = attrs["rel"]?.lowercased().trimmed, let href = attrs["href"]?.decodingHTMLEntities().trimmed
             else { continue }
-            tags.append(MetaTag(kind: .link, key: "link:\(rel)", value: href.decodingHTMLEntities().trimmed))
+            let icon = IconLink(rel: rel, href: href, sizes: attrs["sizes"]?.lowercased(), type: attrs["type"]?.lowercased())
+            if icon.relTokens.contains(where: { ["icon", "apple-touch-icon", "apple-touch-icon-precomposed"].contains($0) }) {
+                icons.append(icon)
+            }
+            guard ["canonical", "icon", "shortcut icon", "apple-touch-icon", "apple-touch-icon-precomposed", "manifest"].contains(rel)
+            else { continue }
+            tags.append(MetaTag(kind: .link, key: "link:\(rel)", value: href))
         }
 
         let title = html.regexMatches(#"<title[^>]*>(.*?)</title>"#)
             .first?[1].decodingHTMLEntities().trimmed
+        let htmlAttrs = html.regexMatches(#"<html\b([^>]*)>"#).first.map { attributes($0[1]) }
+        let language = (htmlAttrs?["lang"] ?? htmlAttrs?["xml:lang"])?.trimmed
 
-        return (title?.isEmpty == false ? title : nil, tags)
+        return ParsedHTML(title: title?.isEmpty == false ? title : nil,
+                          tags: tags,
+                          icons: icons,
+                          language: language?.isEmpty == false ? language : nil,
+                          h1Count: html.regexMatches(#"<h1[\s>]"#).count,
+                          hasStructuredData: !html.regexMatches(#"<script\b[^>]*type\s*=\s*["']?application/ld\+json"#).isEmpty)
     }
 
     private static func kind(for key: String) -> TagKind {

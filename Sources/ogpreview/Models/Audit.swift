@@ -32,7 +32,7 @@ enum Audit {
                   fix: fix)
         }
 
-        let titleGuess = page.value("og:title") ?? "Your page title"
+        let titleGuess = page.value("og:title") ?? page.htmlTitle ?? "Your page title"
         let canonical = page.value("og:url") ?? page.finalURL.absoluteString
 
         check(page.htmlTitle?.isEmpty == false,
@@ -44,6 +44,29 @@ enum Audit {
               pass: "meta description tag is set and is not empty",
               fail: "meta description tag is not set or is empty",
               fix: "Add `<meta name=\"description\" content=\"One sentence about the page\">`. Google shows it as the search snippet.")
+
+        let charsetHeader = page.contentType?.regexMatches(#"charset=([\w\-]+)"#).first?[1]
+        let charsetMeta = page.value("Content-Type")?.regexMatches(#"charset=([\w\-]+)"#).first?[1]
+        let charset = page.value("charset") ?? charsetMeta ?? charsetHeader
+        check(charset != nil,
+              pass: "the character set is declared (\(charset ?? ""))",
+              fail: "the character set is not declared",
+              fix: "Add `<meta charset=\"UTF-8\">` as the first tag inside `<head>`. Without it browsers guess the encoding and can garble accented letters and symbols.")
+
+        let languageGuess = page.value("og:locale")?.replacingOccurrences(of: "_", with: "-") ?? "en"
+        check(page.language != nil,
+              pass: "<html /> declares its language (`lang=\"\(page.language ?? "")\"`)",
+              fail: "<html /> has no `lang` attribute",
+              fix: "Change the opening tag to `<html lang=\"\(languageGuess)\">`. Screen readers pick their voice from it, search engines read the page language from it, and WCAG requires it.")
+
+        check(page.h1Count == 1,
+              pass: "the page has exactly one <h1 /> heading",
+              fail: page.h1Count == 0
+                  ? "the page has no <h1 /> heading"
+                  : "the page has \(page.h1Count) <h1 /> headings, not one",
+              fix: page.h1Count == 0
+                  ? "Add one `<h1>\(titleGuess)</h1>` naming the page's main topic. Search engines read it as what the page is about."
+                  : "Keep one `<h1>` for the page's main topic and turn the others into `<h2>`, so the heading outline has a single top.")
 
         present("og:url",
                 fix: "Add `<meta property=\"og:url\" content=\"\(canonical)\">` so every share is attributed to one canonical URL.")
@@ -90,6 +113,36 @@ enum Audit {
               pass: "the page responds with HTTP 200",
               fail: "the page responds with HTTP \(page.statusCode)",
               fix: "Crawlers drop the preview for anything but 200. Make the URL publicly reachable without a login, and resolve redirects to their final target.")
+
+        func hasIcon(_ matches: (IconLink) -> Bool) -> Bool { page.icons.contains(where: matches) }
+        check(hasIcon { $0.relTokens.contains { $0.hasPrefix("apple-touch-icon") } },
+              pass: "an apple-touch-icon is declared",
+              fail: "no apple-touch-icon is declared",
+              fix: "Add `<link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/apple-touch-icon.png\">`. Without it iOS uses a screenshot of the page when someone adds it to their home screen.")
+        check(hasIcon { $0.relTokens.contains("icon") && ($0.sizes?.split(separator: " ").contains("32x32") ?? false) },
+              pass: "a 32×32 favicon is declared",
+              fail: "no 32×32 favicon is declared",
+              fix: "Add `<link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"/favicon-32x32.png\">` for a crisp icon in browser tabs.")
+        check(hasIcon { icon in
+                  icon.relTokens.contains("icon")
+                      && (icon.type == "image/svg+xml" || URL(string: icon.href)?.path.lowercased().hasSuffix(".svg") == true)
+              },
+              pass: "an SVG favicon is declared",
+              fail: "no SVG favicon is declared",
+              fix: "Add `<link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\">`. It stays sharp at every size and can adapt to dark mode with a CSS media query.")
+        check(page.has("link:manifest"),
+              pass: "a web app manifest is linked",
+              fail: "no web app manifest is linked",
+              fix: "Add `<link rel=\"manifest\" href=\"/site.webmanifest\">`. Android reads the app name, icons and theme from it for Add to Home Screen.")
+        check(page.has("theme-color"),
+              pass: "`theme-color` is present and has value",
+              fail: "`theme-color` is not present or is empty",
+              fix: "Add `<meta name=\"theme-color\" content=\"#4285f4\">` with your brand colour. Mobile browsers tint their toolbar with it.")
+        let jsonLD = #"{"@context": "https://schema.org", "@type": "WebPage", "name": "\#(jsonEscaped(titleGuess))", "description": "\#(jsonEscaped(page.value("description", "og:description") ?? "Your description"))"}"#
+        check(page.hasStructuredData,
+              pass: "structured data (JSON-LD) is present",
+              fail: "no structured data (JSON-LD) is present",
+              fix: "Add `<script type=\"application/ld+json\">\(jsonLD)</script>`. Search engines use it to understand the page and can show rich results such as FAQs, ratings and breadcrumbs.")
 
         if let title = page.value("og:title") {
             check(title.count <= 60,
@@ -147,6 +200,10 @@ enum Audit {
 
         // Failures first, passes below, each keeping the order they run in.
         return checks.filter { !$0.passed } + checks.filter(\.passed)
+    }
+
+    private static func jsonEscaped(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
     }
 
     static func byteString(_ count: Int) -> String {
